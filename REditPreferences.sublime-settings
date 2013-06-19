@@ -1,0 +1,6 @@
+//Settings for remote connections using REdit
+{
+	"ssh_host": "",
+	"ssh_username": "",
+	"ssh_pass": ""
+}
