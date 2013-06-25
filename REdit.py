@@ -3,6 +3,7 @@ import paramiko
 import tempfile
 import time
 import os
+import stat
 
 class RemoteOpenCommand(sublime_plugin.WindowCommand):
 
@@ -49,7 +50,6 @@ class RemoteSaveCommand(sublime_plugin.TextCommand):
         pass
 
     def on_done(self, text):
-        print("You wrote " + text)
         s = sublime.load_settings("REditPreferences.sublime-settings")
         host = s.get("ssh_host")
         username = s.get("ssh_username")
@@ -62,4 +62,7 @@ class RemoteSaveCommand(sublime_plugin.TextCommand):
         client.close()
 
     def save_file(self, filepath):
-        self.sftp.put(self.view.file_name(), filepath)
+        #if (filepath.endswith('/')):
+        #    filepath += self.view.file_name().split('/')[-1] 
+        #self.sftp.put(self.view.file_name(), filepath)
+        print(stat.S_ISDIR(self.sftp.lstat(filepath).st_mode))
