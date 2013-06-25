@@ -45,8 +45,8 @@ class RemoteOpenCommand(sublime_plugin.WindowCommand):
 class RemoteSaveCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
-        self.window.show_input_panel("Remote File Path:", "", self.on_done, None, None)
-        #print(self.view.substr(sublime.Region(0, self.view.size())))
+        self.view.window().show_input_panel("Remote File Path:", "", self.on_done, None, None)
+        pass
 
     def on_done(self, text):
         print("You wrote " + text)
@@ -57,7 +57,9 @@ class RemoteSaveCommand(sublime_plugin.TextCommand):
         client = paramiko.SSHClient()
         client.load_system_host_keys()
         client.connect(host, username = username, password = pw)
-        sftp = client.open_sftp()
-        remotefile = sftp.open(text, mode='r')
-        self.read_file(remotefile)
+        self.sftp = client.open_sftp()
+        self.save_file(text)
         client.close()
+
+    def save_file(self, filepath):
+        self.sftp.put(self.view.file_name(), filepath)
