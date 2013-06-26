@@ -12,10 +12,11 @@ class RemoteOpenCommand(sublime_plugin.WindowCommand):
         pass
 
     def on_done(self, text):
-        s = sublime.load_settings("REditPreferences.sublime-settings")
-    	host = s.get("ssh_host")
-    	username = s.get("ssh_username")
-    	pw = s.get("ssh_pass")
+        self.s = sublime.load_settings("REditPreferences.sublime-settings")
+    	host = self.s.get("ssh_host")
+    	username = self.s.get("ssh_username")
+    	pw = self.s.get("ssh_pass")
+        self.curr_dir = os.path.join(str(self.s.get("workspace_dir")),str(username)+"@"+str(host))
         client = paramiko.SSHClient()
     	client.load_system_host_keys()
     	client.connect(host, username = username, password = pw)
@@ -25,22 +26,18 @@ class RemoteOpenCommand(sublime_plugin.WindowCommand):
         pass
 
     def read_file(self, filepath):
+        local_path = os.path.normpath(self.curr_dir + filepath)
+        if not os.path.exists(os.path.normpath(os.path.join(local_path, "/.."))):
+            os.makedirs(os.path.normpath(os.path.join(local_path, "/..")))
         try:
-            remotefile = self.sftp.open(filepath, mode='r')
-            temp_dir = tempfile.mkdtemp(prefix='REdit-')
+            self.sftp.get(filepath, local_path)
         except IOError as e:
             sublime.error_message("Could not find file %s" % filepath)
+            print e
             return
         except OSError as e:
            sublime.error_message("Failed to create a temporary directory! Error: %s" % e)
            return
-        file_name = filepath.split('/')[-1]
-        local_path = os.path.join(temp_dir, file_name)
-        local_file = open(local_path, "w+")
-        file_contents = remotefile.read()
-        local_file.write(file_contents)
-        local_file.flush()
-        local_file.seek(0)
         self.window.open_file(local_path)
 
 class RemoteSaveCommand(sublime_plugin.TextCommand):
@@ -62,7 +59,6 @@ class RemoteSaveCommand(sublime_plugin.TextCommand):
         client.close()
 
     def save_file(self, filepath):
-        #if (filepath.endswith('/')):
-        #    filepath += self.view.file_name().split('/')[-1] 
-        #self.sftp.put(self.view.file_name(), filepath)
-        print(stat.S_ISDIR(self.sftp.lstat(filepath).st_mode))
+        if (stat.S_ISDIR(self.sftp.lstat(filepath).st_mode)):
+            filepath += self.view.file_name().split('/')[-1] 
+        self.sftp.put(self.view.file_name(), filepath)
