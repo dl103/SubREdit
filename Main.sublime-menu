@@ -6,7 +6,8 @@
     "children":
     [  
         { "command": "remote_open", "caption": "Open Remote File..." },
-        { "command": "remote_save", "caption": "Save Remote File..." }
+        { "command": "remote_save_as", "caption": "Save As Remote File..." },
+        { "command": "remote_save", "caption": "Save Remote File" }
     ]  
 }
 ]

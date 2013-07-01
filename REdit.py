@@ -16,7 +16,8 @@ class RemoteOpenCommand(sublime_plugin.WindowCommand):
     	host = self.s.get("ssh_host")
     	username = self.s.get("ssh_username")
     	pw = self.s.get("ssh_pass")
-        self.curr_dir = os.path.join(str(self.s.get("workspace_dir")),str(username)+"@"+str(host))
+        w_dir = self.s.get("workspace_dir")
+        self.curr_dir = os.path.join(str(w_dir),str(username)+"@"+str(host))
         client = paramiko.SSHClient()
     	client.load_system_host_keys()
     	client.connect(host, username = username, password = pw)
@@ -27,8 +28,9 @@ class RemoteOpenCommand(sublime_plugin.WindowCommand):
 
     def read_file(self, filepath):
         local_path = os.path.normpath(self.curr_dir + filepath)
-        if not os.path.exists(os.path.normpath(os.path.join(local_path, "/.."))):
-            os.makedirs(os.path.normpath(os.path.join(local_path, "/..")))
+        print os.path.normpath(os.path.join(local_path, ".."))
+        if not os.path.exists(os.path.normpath(os.path.join(local_path, ".."))):
+            os.makedirs(os.path.normpath(os.path.join(local_path, "..")))
         try:
             self.sftp.get(filepath, local_path)
         except IOError as e:
@@ -40,7 +42,7 @@ class RemoteOpenCommand(sublime_plugin.WindowCommand):
            return
         self.window.open_file(local_path)
 
-class RemoteSaveCommand(sublime_plugin.TextCommand):
+class RemoteSaveAsCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         self.view.window().show_input_panel("Remote File Path:", "", self.on_done, None, None)
@@ -59,6 +61,25 @@ class RemoteSaveCommand(sublime_plugin.TextCommand):
         client.close()
 
     def save_file(self, filepath):
-        if (stat.S_ISDIR(self.sftp.lstat(filepath).st_mode)):
+        if (os.path.isdir(filepath)):
             filepath += self.view.file_name().split('/')[-1] 
+        self.sftp.put(self.view.file_name(), filepath)
+
+class RemoteSaveCommand(sublime_plugin.TextCommand):
+
+    def run(self, edit):
+        self.s = sublime.load_settings("REditPreferences.sublime-settings")
+        w_dir = self.s.get("workspace_dir")
+        host = self.s.get("ssh_host")
+        username = self.s.get("ssh_username")
+        client = paramiko.SSHClient()
+        client.load_system_host_keys()
+        client.connect(host, username = username, password = pw)
+        self.sftp = client.open_sftp()
+        self.curr_dir = os.path.join(str(w_dir),str(username)+"@"+str(host))
+        remote_path = os.path.abspath(os.path.relpath(self.view.file_name(), self.curr_dir))
+        self.save_file(remote_path)
+        client.close()
+
+    def save_file(self, filepath):
         self.sftp.put(self.view.file_name(), filepath)
